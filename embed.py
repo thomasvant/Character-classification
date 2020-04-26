@@ -24,16 +24,6 @@ def elmo_vectors(x):
     # return average of ELMo features
     return sess.run(tf.reduce_mean(embeddings,1))
 
-print(elmo_vectors(test))
-# with tf.Session() as session:
-#     session.run([tf.global_variables_initializer(), tf.tables_initializer()])
-#     embeddings = session.run(
-#         elmo(
-#             ["the jumpy brown cat", "the fast red car"],
-#             signature="default",
-#             as_dict=True)["elmo"])
-#
-# # print(embeddings[1])
-# for item in embeddings:
-#     for newItem in item:
-#         fileWriter.writerow(newItem)
+vectors = elmo_vectors(test)
+for item in vectors:
+    fileWriter.writerow(item)

@@ -1,70 +1,50 @@
 import re
 import csv
 from bs4 import BeautifulSoup
+import os.path as op
 import os
 
-globalInvalidTags = ['font', 'em', 'i']
-lineInvalidTags = ['b']
+globalInvalidTags = ['font', 'em', 'i', 'strong', 'b']
 
-scriptPath = os.path.abspath(__file__)  # path to python script
-scriptDir = os.path.split(scriptPath)[0]  # path to python script dir
-transcriptsDir = os.path.join(scriptDir, "transcripts")  # path to transcripts dir
-parsedTranscriptsDir = os.path.join(scriptDir, "parsedTranscripts")
+mainDir = op.abspath(op.join(__file__,op.pardir))
+transcriptDir, parsedTranscriptsDir = op.join(mainDir, 'transcripts'), op.join(mainDir, 'parsedTranscripts')
 
-if not os.path.exists(parsedTranscriptsDir):
+if not op.exists(parsedTranscriptsDir):
     os.makedirs(parsedTranscriptsDir)
 
-for dir in os.listdir(transcriptsDir):  # for each season
-    seasonDir = os.path.join(transcriptsDir, dir)  # path to season dir
+for dir in os.listdir(transcriptDir):
+    seasonDir, parsedSeasonDir = op.join(transcriptDir, dir), op.join(parsedTranscriptsDir, dir)
 
-    parsedSeasonDir = os.path.join(parsedTranscriptsDir, dir)
-    if not os.path.exists(parsedSeasonDir):
-        os.mkdir(parsedSeasonDir)
+    if not op.exists(parsedSeasonDir):
+        os.makedirs(parsedSeasonDir)
 
-    for filename in os.listdir(seasonDir):  # for each episode in season
-        episodePath = os.path.join(seasonDir, filename)  # path to episode
-        parsedEpisodePath = os.path.join(parsedSeasonDir, os.path.splitext(filename)[0] + '.csv')  # path to parsed file
-        print(str(parsedEpisodePath))
-
+    for file in os.listdir(seasonDir):
+        episodePath, parsedEpisodePath = op.join(seasonDir, file), op.join(parsedSeasonDir, op.splitext(file)[0] + '.csv')
         curFile = open(episodePath)
-        soup = BeautifulSoup(curFile, 'html.parser')
+        print(episodePath)
 
-        with open(parsedEpisodePath, 'w', newline='') as csvfile:
-            fileWriter = csv.writer(csvfile, delimiter='|')
-            for tag in globalInvalidTags:
-                # remove invalid tags but keep content
-                for match in soup.findAll(tag):
-                    match.replaceWithChildren()
+        with open(parsedEpisodePath, 'w', newline='') as parsedCurFile:
+            fileWriter = csv.writer(parsedCurFile, delimiter='|')
 
-            for item in soup.select('p'):
-                # remove \n, replace strong tags with b tags, remove &nbsp
-                item = str(item).replace('\n', ' ').replace('strong>', 'b>').replace(u'\xa0', '')
+            documentSoup = BeautifulSoup(curFile, 'html.parser')
 
-                characterRegex = re.search('<b>(.*):( |)</b>',
-                                           item)  # obtain only the string between <b> and </b>, due to irregularities in syntax ( |) is added
-                lineRegex = re.search('</b>(.*)</p>', item)  # obtain everything between </b> and </p>
+            for paragraphTag in documentSoup.select('p'):
+                paragraphString = str(paragraphTag).replace('\n', ' ').replace(u'\xa0', '')
+                paragraphStringNoDirections = re.sub(r'\([^\)]*\)', '', paragraphString) # remove scene directions
+                paragraphStringNoScene = re.sub(r'\[[^\]]*\]', '', paragraphStringNoDirections) # remove scene explanations
 
-                output = [str(item)]
+                paragraphSoup = BeautifulSoup(paragraphStringNoScene,'html.parser')
+                bold = paragraphSoup.select('b')
+                strong = paragraphSoup.select('strong')
+                if bold or strong: # characters are placed in either strong or bold tags, all other lines can be diregarded
+                    for tag in globalInvalidTags:
+                        for match in paragraphSoup.findAll(tag):
+                            match.replaceWithChildren() # strip the line from all tags, necessary due to irregularities in the files
+                    try:
+                        characters, line = paragraphSoup.getText().split(':', 1)  # split characters from line, only split once since the line can contain : as well (e.g. in 2:30am)
+                        multipleCharacters = re.split(', and |, | and ', characters) # sometimes, multiple characters say the same sentence, so they should be split. too
 
-                if characterRegex is not None:
-                    characterString = str(characterRegex.group(1))
-                    output.append(characterString)
-                if lineRegex is not None:
-                    lineRegexSoup = BeautifulSoup(str(lineRegex.group(1)), 'html.parser')
-                    for tag in lineInvalidTags:
-                        # remove invalid tags but keep content
-                        for match in lineRegexSoup.findAll(tag):
-                            match.replaceWithChildren()
-                    lineNoDirectionsRegex = re.sub(r'\([^\)]*\)', '',
-                                                   str(lineRegexSoup))  # remove everything between ()
-                    lineNoSceneRegex = re.sub(r'\[[^\]]*\]', '',
-                                              str(lineNoDirectionsRegex))  # remove everything between []
-                    lineString = str(lineNoSceneRegex)
-                    output.append(lineString)
-
-                fileWriter.writerow(output)
-                # if characterRegex is not None and lineRegex is not None:
-                #     fileWriter.writerow(output)
-
-        break
-    break
+                        for curCharacter in multipleCharacters:
+                            fileWriter.writerow([curCharacter, line])
+                    except ValueError: # credits etc. are in bold tags, so we remove them here
+                        continue
