@@ -33,13 +33,10 @@ for dir in os.listdir(parsedTranscriptsDir):
 
     for file in os.listdir(parsedSeasonDir):
         parsedEpisodePath, embeddedEpisodePath = op.join(parsedSeasonDir, file), op.join(embeddedSeasonDir, file)
-        parsedTranscript = pd.read_csv(parsedEpisodePath, sep='|', usecols=[0,1], names=['character', 'line'], header=None)
-        print(parsedTranscript['line'].tolist())
+        parsedTranscript = pd.read_csv(parsedEpisodePath, sep='|', usecols=[2], names=['line'], header=None)
+
         embeddedTranscriptLines = elmo_vectors(parsedTranscript['line'].tolist())
         embeddedTranscriptDataFrame = pd.DataFrame(embeddedTranscriptLines)
         embeddedTranscriptDataFrame.to_csv(embeddedEpisodePath, sep='|', header=False, index=False)
         break
     break
-        # with open(parsedEpisodePath, 'w', newline='') as parsedCurFile, open(embeddedEpisodePath, 'w', newline='') as embeddedCurFile:
-        #     fileReader = csv.reader(parsedCurFile, delimiter='|')
-        #     fileWriter = csv.writer(embeddedCurFile, delimiter='|')
