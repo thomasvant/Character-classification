@@ -23,7 +23,7 @@ for dir in os.listdir(transcriptDir):
         curFile = open(episodePath)
         print(episodePath)
 
-        with open(parsedEpisodePath, 'w', newline='') as parsedCurFile:
+        with open(parsedEpisodePath, 'w', newline='', encoding='utf-8') as parsedCurFile:
             fileWriter = csv.writer(parsedCurFile, delimiter='|')
 
             documentSoup = BeautifulSoup(curFile, 'html.parser')
@@ -45,6 +45,7 @@ for dir in os.listdir(transcriptDir):
                         multipleCharacters = re.split(', and |, | and ', characters) # sometimes, multiple characters say the same sentence, so they should be split. too
 
                         for curCharacter in multipleCharacters:
+                            switch
                             fileWriter.writerow([curCharacter, line])
                     except ValueError: # credits etc. are in bold tags, so we remove them here
                         continue
