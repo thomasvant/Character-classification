@@ -4,50 +4,107 @@ from bs4 import BeautifulSoup
 import os.path as op
 import os
 import pandas as pd
+from contractions import CONTRACTION_MAP
+import string
 
-globalInvalidTags = ['font', 'em', 'i', 'strong', 'b']
-mainCharacters = {'Rachel': 1, 'Monica': 2, 'Joey': 3, 'Chandler': 4, 'Phoebe': 5, 'Ross': 6}
 
-mainDir = op.abspath(op.join(__file__,op.pardir))
-transcriptDir, parsedTranscriptsDir = op.join(mainDir, 'transcripts'), op.join(mainDir, 'parsedTranscripts')
+def create_dir_if_not_exists(dir):
+    if not op.exists(dir):
+        os.makedirs(dir)
 
-if not op.exists(parsedTranscriptsDir):
-    os.makedirs(parsedTranscriptsDir)
 
-for dir in os.listdir(transcriptDir):
-    seasonDir, parsedSeasonDir = op.join(transcriptDir, dir), op.join(parsedTranscriptsDir, dir)
+def parse_string(string):
+    new_string = string.replace('\n', ' ').replace(u'\xa0', '')
+    new_string = re.sub(r'\([^\)]*\)', '', new_string)  # remove scene directions
+    new_string = re.sub(r'\[[^\]]*\]', '', new_string)  # remove scene explanations
+    return new_string
 
-    if not op.exists(parsedSeasonDir):
-        os.makedirs(parsedSeasonDir)
+def strip_tags(soup):
+    invalid_tags = ['font', 'em', 'i', 'strong', 'b']
+    for tag in invalid_tags:
+        for match in soup.findAll(tag):
+            match.replaceWithChildren()  # strip the line from all tags, necessary due to irregularities in the files
 
-    for file in os.listdir(seasonDir):
-        episodePath, parsedEpisodePath = op.join(seasonDir, file), op.join(parsedSeasonDir, op.splitext(file)[0] + '.csv')
-        curFile = open(episodePath)
-        print(episodePath)
-        data = []
+# From GitHub user dipanjanS
+# https://github.com/dipanjanS/text-analytics-with-python/tree/master/Old-First-Edition/source_code/Ch03_Processing_and_Understanding_Text
+def expand_contractions(text, contraction_mapping=CONTRACTION_MAP):
+    contractions_pattern = re.compile('({})'.format('|'.join(contraction_mapping.keys())),
+                                      flags=re.IGNORECASE | re.DOTALL)
+    def expand_match(contraction):
+        match = contraction.group(0)
+        first_char = match[0]
+        expanded_contraction = contraction_mapping.get(match) \
+            if contraction_mapping.get(match) \
+            else contraction_mapping.get(match.lower())
+        expanded_contraction = expanded_contraction
+        return expanded_contraction
 
-        documentSoup = BeautifulSoup(curFile, 'html.parser')
-        for paragraphTag in documentSoup.select('p'):
-            paragraphString = str(paragraphTag).replace('\n', ' ').replace(u'\xa0', '')
-            paragraphStringNoDirections = re.sub(r'\([^\)]*\)', '', paragraphString) # remove scene directions
-            paragraphStringNoScene = re.sub(r'\[[^\]]*\]', '', paragraphStringNoDirections) # remove scene explanations
+    expanded_text = contractions_pattern.sub(expand_match, text)
+    expanded_text = re.sub("'", "", expanded_text)
+    return expanded_text
 
-            paragraphSoup = BeautifulSoup(paragraphStringNoScene,'html.parser')
-            bold = paragraphSoup.select('b')
-            strong = paragraphSoup.select('strong')
+def preprocess_string(string):
+    new_string = re.sub(r'\d+', '', string) # remove numbers
+    new_string = new_string.lower()
+    new_string = expand_contractions(new_string)
+    new_string = re.sub(r'[^\w\s]', ' ', new_string)
+    new_string = re.sub(' +', ' ', new_string)
+    new_string = new_string.strip()
+    return new_string
 
-            if bold or strong: # characters are placed in either strong or bold tags, all other lines can be diregarded
-                for tag in globalInvalidTags:
-                    for match in paragraphSoup.findAll(tag):
-                        match.replaceWithChildren() # strip the line from all tags, necessary due to irregularities in the files
-                try:
-                    characters, line = paragraphSoup.getText().split(':', 1)  # split characters from line, only split once since the line can contain : as well (e.g. in 2:30am)
-                    multipleCharacters = re.split(', and |, | and ', characters) # sometimes, multiple characters say the same sentence, so they should be split. too
 
-                    for curCharacter in multipleCharacters:
-                        characterId = mainCharacters.get(curCharacter, 0) # assign id to character, default (for non main characters) is 0
-                        data.append([paragraphStringNoScene, curCharacter, characterId, line])
-                        parsedTranscriptsDataFrame = pd.DataFrame(data)
-                        parsedTranscriptsDataFrame.to_csv(parsedEpisodePath, sep='|', header=False, index=False)
-                except ValueError: # credits etc. are in bold tags, so we remove them here
-                    continue
+def split_line(string):
+    lines = re.split("[.?!]", string) # split line on punctuation
+    lines = [line.strip() for line in lines] # strip line from preceding and appending white space
+    lines = list(filter(None, lines))
+    return lines
+
+def parse_episode(path_episode):
+    data = []
+    soup_doc = BeautifulSoup(open(path_episode), 'html.parser')
+    for tag_p in soup_doc.select('p'):
+        soup_p_parsed = BeautifulSoup(parse_string(str(tag_p)), 'html.parser')
+        bold = soup_p_parsed.select('b')
+        strong = soup_p_parsed.select('strong')
+
+        if bold or strong:  # characters are placed in either strong or bold tags, all other lines can be diregarded
+            try:
+                characters, line = soup_p_parsed.get_text().split(':',
+                                                                  1)  # split characters from line, only split once since the line can contain : as well (e.g. in 2:30am)
+                character_array = re.split(', and |, | and ',
+                                           characters)  # sometimes, multiple characters say the same sentence, so they should be split. too
+
+                for character in character_array:
+                    if character == "All": # remove lines that are said by all because it is not clear who is meant by all
+                        continue
+                    id = main_characters.get(character,
+                                             0)  # assign id to character, default (for non main characters) is 0
+                    for cur_line in split_line(line):
+                        processed_string = preprocess_string(cur_line)
+                        data.append([character, id, cur_line, processed_string])
+
+            except ValueError:  # credits etc. are in bold tags, so we remove them here
+                continue
+    return data
+
+
+
+main_characters = {'Rachel': 1, 'Monica': 2, 'Joey': 3, 'Chandler': 4, 'Phoebe': 5, 'Ross': 6}
+
+dir_main = op.abspath(op.join(__file__, op.pardir))
+dir_transcript, dir_transcript_parsed = op.join(dir_main, 'transcripts'), op.join(dir_main, 'parsedTranscripts')
+
+create_dir_if_not_exists(dir_transcript_parsed)
+
+for dir in os.listdir(dir_transcript):
+    dir_season, dir_season_parsed = op.join(dir_transcript, dir), op.join(dir_transcript_parsed, dir)
+
+    create_dir_if_not_exists(dir_season_parsed)
+
+    for file in os.listdir(dir_season):
+        path_episode, path_episode_parsed = op.join(dir_season, file), op.join(dir_season_parsed,
+                                                                               op.splitext(file)[0] + '.csv')
+
+        dataframe = pd.DataFrame(parse_episode(path_episode))
+        dataframe.to_csv(path_episode_parsed, sep='|', header=False, index=False)
+        print("Parsed " + op.basename(path_episode_parsed))
