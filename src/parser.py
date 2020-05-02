@@ -1,14 +1,23 @@
 import pathlib
-import pandas as pd
-from bs4 import BeautifulSoup as bs
 import re
 import string
-
+import nltk
+from nltk.stem import WordNetLemmatizer
+import pandas as pd
+from bs4 import BeautifulSoup as bs
+from src.expanding_contractions import expand_contractions
 
 dir_transcript = pathlib.Path.cwd().parent.joinpath('transcripts')
 dir_transcript_parsed = pathlib.Path.cwd().parent.joinpath('transcripts_parsed')
 dir_transcript_parsed.mkdir(parents=True, exist_ok=True)
-punctuation = string.punctuation.replace("'", "") + "—"
+wordnet_lemmatizer = WordNetLemmatizer()
+# nltk.download('punkt')
+# nltk.download('wordnet')
+punctuation = string.punctuation.replace("'", "") + "—…"
+
+
+# line_count = {'joey':0, 'rachel':0, 'monica':0, 'phoebe':0, 'chandler':0, 'ross':0, 'other':0}
+
 
 def remove_details(string):
     new_string = string.replace('\n', '')
@@ -17,6 +26,9 @@ def remove_details(string):
     return new_string
 
 
+# def count_lines(char):
+#     line_count[char] = line_count.get(char) + 1
+
 def split_char_from_line(string):
     try:
         char, line = string.split(':', 1)
@@ -24,15 +36,24 @@ def split_char_from_line(string):
     except ValueError:
         return None, None
 
+
 def clean_line(string):
     # remove punctuation except for '
-    new_string = string
+    new_string = string.lower()
     for x in punctuation:
         new_string = new_string.replace(x, ' ')
-
-    # remove duplicate white spaces
+    new_string = expand_contractions(new_string)
+    # new_string = lemmatize_line(new_string)
     new_string = re.sub('(  +)', ' ', new_string)
+    new_string = new_string.strip()
     return new_string
+
+
+def lemmatize_line(string):
+    word_tokens = nltk.word_tokenize(string)
+    lemmatized = [wordnet_lemmatizer.lemmatize(word) for word in word_tokens]
+    return ' '.join(lemmatized)
+
 
 def return_multiple_characters(string):
     new_string = string.lower()
@@ -55,7 +76,6 @@ def clean_character(string):
 
 def return_multiple_lines(string):
     lines = re.split("[.?!]", string)  # split line on punctuation
-    lines = [line.strip().lower() for line in lines]  # strip line from preceding and appending white space
     lines = list(filter(None, lines))
     return lines
 
@@ -82,12 +102,15 @@ def parse_episode(episode):
                 continue
             for cur_line in lines_multiple:
                 cleaned_line = clean_line(cur_line)
+                if not cleaned_line:
+                    continue
+                # count_lines(cleaned_char)
                 data.append([cleaned_char, cleaned_line])
     return data
 
 
 def write_to_file(data, path):
-    pd.DataFrame(data).to_csv(path, sep='|', header=False, index=False)
+    pd.DataFrame(data).to_csv(path, sep='|', header=['char', 'line'], index=False)
 
 
 for path_episode in dir_transcript.iterdir():
@@ -95,3 +118,4 @@ for path_episode in dir_transcript.iterdir():
     data = parse_episode(open(path_episode, encoding="utf8"))
     path_episode_parsed = dir_transcript_parsed.joinpath(path_episode.stem + '.csv')
     write_to_file(data, path_episode_parsed)
+    # print(line_count)
