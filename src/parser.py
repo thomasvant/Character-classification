@@ -7,6 +7,7 @@ import pandas as pd
 from bs4 import BeautifulSoup as bs
 from src.expanding_contractions import expand_contractions
 
+
 dir_transcript = pathlib.Path.cwd().parent.joinpath('transcripts')
 dir_transcript_parsed = pathlib.Path.cwd().parent.joinpath('transcripts_parsed')
 dir_transcript_parsed.mkdir(parents=True, exist_ok=True)
