@@ -6,15 +6,20 @@ from nltk.stem import WordNetLemmatizer
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from src.expanding_contractions import expand_contractions
+import nltk
+from nltk.corpus import stopwords
 
-
+stop_words = set(stopwords.words('english'))
 dir_transcript = pathlib.Path.cwd().parent.joinpath('transcripts')
 dir_transcript_parsed = pathlib.Path.cwd().parent.joinpath('transcripts_parsed')
 dir_transcript_parsed.mkdir(parents=True, exist_ok=True)
 wordnet_lemmatizer = WordNetLemmatizer()
+punctuation = string.punctuation.replace("'", "") + "—…"
+
+# First time use only
 # nltk.download('punkt')
 # nltk.download('wordnet')
-punctuation = string.punctuation.replace("'", "") + "—…"
+# nltk.download('stopwords')
 
 
 # line_count = {'joey':0, 'rachel':0, 'monica':0, 'phoebe':0, 'chandler':0, 'ross':0, 'other':0}
@@ -22,6 +27,7 @@ punctuation = string.punctuation.replace("'", "") + "—…"
 
 def remove_details(string):
     new_string = string.replace('\n', '')
+    new_string = string.replace('s*x', 'sex')
     new_string = re.sub(r'\([^\)]*\)', '', new_string)  # remove scene directions
     new_string = re.sub(r'\[[^\]]*\]', '', new_string)  # remove scene explanations
     return new_string
@@ -38,15 +44,21 @@ def split_char_from_line(string):
         return None, None
 
 
+def remove_stop_words(string):
+    word_array = string.split(' ')
+    new_array = [i for i in word_array if not i in stop_words]
+    return ' '.join(new_array)
+
 def clean_line(string):
     # remove punctuation except for '
     new_string = string.lower()
     for x in punctuation:
         new_string = new_string.replace(x, ' ')
     new_string = expand_contractions(new_string)
-    # new_string = lemmatize_line(new_string)
     new_string = re.sub('(  +)', ' ', new_string)
     new_string = new_string.strip()
+    new_string = remove_stop_words(new_string)
+    # new_string = lemmatize_line(new_string)
     return new_string
 
 
