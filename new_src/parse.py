@@ -2,7 +2,11 @@ import pathlib
 from bs4 import BeautifulSoup as bs
 import re
 import pandas as pd
+from nltk.stem import WordNetLemmatizer
+from nltk.stem import PorterStemmer
 
+porter=PorterStemmer()
+lemmatizer = WordNetLemmatizer()
 
 def main():
     transcripts_dir = pathlib.Path.cwd().parent.joinpath('transcripts')
@@ -32,8 +36,8 @@ def parse_string(string):
     string = replace_words(string)
     string = remove_scene_directions(string)
     character, line = split_sentence_from_character(string)
-    character_array = split_characters(character)
-    line_array = split_lines(line)
+    character_array = split_and_process_characters(character)
+    line_array = split_and_process_lines(line)
     string_array = []
     if character_array and line_array is not None:
         for character in character_array:
@@ -62,6 +66,22 @@ def replace_words(string):
     return string
 
 
+def lemmatize(string):
+    word_array = []
+    for word in string.split(' '):
+        word_array.append(lemmatizer.lemmatize(word))
+    string = ' '.join(word_array)
+    return string
+
+
+def stem(string):
+    word_array = []
+    for word in string.split(' '):
+        word_array.append(word)
+    string = ' '.join(word_array)
+    return string
+
+
 def decapitalize(string):
     return string.lower()
 
@@ -80,7 +100,7 @@ def split_sentence_from_character(string):
         return None, None
 
 
-def split_characters(string):
+def split_and_process_characters(string):
     if string is None:
         return None
     main_characters = ['chandler', 'joey', 'monica', 'phoebe', 'rachel', 'ross']
@@ -91,14 +111,12 @@ def split_characters(string):
     character_array = string.split('+')
     new_character_array = []
     for character in character_array:
-        if character not in main_characters:
-            new_character_array.append('other')
-        else:
+        if character in main_characters:
             new_character_array.append(character)
     return new_character_array
 
 
-def split_lines(string):
+def split_and_process_lines(string):
     if string is None:
         return None
     lines = []
@@ -106,13 +124,13 @@ def split_lines(string):
         line = remove_punctuation(line)
         line = remove_redundant_spaces(line)
         if line is not "'":
-            lines.append(line)
+            lines.append(stem(line))
     lines = list(filter(None, lines))
     return lines
 
 
 def remove_punctuation(string):
-    banned_punctuation = '!"#$%&()*+,-./:;<=>?@[\]^_`{|}~—…“' # all punctuation except '
+    banned_punctuation = '!"#$%&()*+,-./:;<=>?@[\]^_`{|}~—…“'  # all punctuation except '
     for punctuation in banned_punctuation:
         string = string.replace(punctuation, ' ')
     string = re.sub('[0-9]', '', string)
@@ -123,5 +141,6 @@ def remove_punctuation(string):
 def remove_redundant_spaces(string):
     string = re.sub('( +)', ' ', string).strip()
     return string
+
 
 main()

@@ -10,13 +10,33 @@ def main():
     parsed_data = pd.read_csv(parsed_path, sep='|', index_col=False)
     preprocessed_data = []
 
-    for line in parsed_data:
-        preprocessed_data.append(line['character'], preprocess_line(line['line']))
+    for char, line in parsed_data['character'], parsed_data['line']:
+        preprocessed_data.append([char, preprocess_line('line')])
 
     pd.DataFrame(preprocessed_data).to_csv(preprocessed_path, sep='|', header=['character', 'line'], index=False)
 
 
-def preprocess_line(line):
+def preprocess_line(string):
+    string = expand_abbreviations(string)
+    string = remove_stopwords(string)
+    string = lemmatize(string)
+    string = stem(string)
+    return string
+
+
+def expand_abbreviations(string):
+    pass
+
+
+def remove_stopwords(string):
+    pass
+
+
+def lemmatize(string):
+    pass
+
+
+def stem(string):
     pass
 
 
