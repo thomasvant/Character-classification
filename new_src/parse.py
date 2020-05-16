@@ -5,7 +5,7 @@ import pandas as pd
 from nltk.stem import WordNetLemmatizer
 from nltk.stem import PorterStemmer
 
-porter=PorterStemmer()
+porter = PorterStemmer()
 lemmatizer = WordNetLemmatizer()
 
 def main():
@@ -19,7 +19,7 @@ def main():
         print("Parsing " + episode_path.stem)
         parsed_transcript_array.extend(parse_episode(open(episode_path, encoding="utf8")))
 
-    pd.DataFrame(parsed_transcript_array).to_csv(parsed_path, sep='|', header=['character', 'line'], index=False)
+    pd.DataFrame(parsed_transcript_array).to_csv(parsed_path, sep='|', header=['character', 'line'])
 
 
 def parse_episode(file):
@@ -116,6 +116,10 @@ def split_and_process_characters(string):
     return new_character_array
 
 
+def words_per_line(string):
+    return len(string.split(' '))
+
+
 def split_and_process_lines(string):
     if string is None:
         return None
@@ -123,14 +127,15 @@ def split_and_process_lines(string):
     for line in re.split("[.?!]", string):
         line = remove_punctuation(line)
         line = remove_redundant_spaces(line)
-        if line is not "'":
-            lines.append(stem(line))
+        if words_per_line(line) > 1:
+            # line = stem(line)
+            lines.append(line)
     lines = list(filter(None, lines))
     return lines
 
 
 def remove_punctuation(string):
-    banned_punctuation = '!"#$%&()*+,-./:;<=>?@[\]^_`{|}~—…“'  # all punctuation except '
+    banned_punctuation = '!"#$%&()*+,-./:;<=>?@[\]^_`{|}~—…“”'  # all punctuation except '
     for punctuation in banned_punctuation:
         string = string.replace(punctuation, ' ')
     string = re.sub('[0-9]', '', string)
