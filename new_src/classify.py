@@ -19,9 +19,15 @@ created_files_dir = pathlib.Path.cwd().parent.joinpath('created_files')
 
 def main():
     parsed_path = created_files_dir.joinpath('processed.csv')
-    embedded_sisters_path = created_files_dir.joinpath('embedded_sisters.csv')
+    embedded_fasttext_path = created_files_dir.joinpath('embedded_fasttext.csv')
+    embedded_word2vec_path = created_files_dir.joinpath('embedded_word2vec.csv')
     parsed_data = pd.read_csv(parsed_path, sep='|', index_col=0)
-    embedded_sisters_data = pd.read_csv(embedded_sisters_path, sep='|',header=None, index_col=0)
+
+    # Word2Vec
+    # Tuned hyperparameters: (best parameters)
+    # {'C': 0.1, 'max_iter': 500, 'penalty': 'l2'}
+    # Accuracy: 0.2181906218975002
+    embedded_sisters_data = pd.read_csv(embedded_fasttext_path, sep='|',header=None, index_col=0)
     # embedded_sisters_data = embedded_sisters_data.head(500)
     # parsed_data = parsed_data.head(500)
 
@@ -41,13 +47,18 @@ def main():
         X_train_tfidf = scalar.transform(X_train_tfidf)
         X_test_tfidf = scalar.transform(X_test_tfidf)
 
-        lg = LogisticRegression(C=0.0001, max_iter=500, multi_class='multinomial')
-        lg.fit(X_train_tfidf, y_train)
+        params = {'C': np.logspace(-20, 20, 41), 'penalty': ['l2'], 'max_iter': [500]}
 
-        classes = lg.classes_
+        lg = LogisticRegression(multi_class='multinomial')
+        lg_grid = GridSearchCV(lg, params, verbose=3)
+        lg_grid.fit(X_train_tfidf, y_train)
+        print("Tuned hyperparameters :(best parameters) ", lg_grid.best_params_)
+        print("Accuracy :", lg_grid.best_score_)
 
-        predicted_probabilities = lg.predict_proba(X_test_tfidf)
-        predicted_label = lg.predict(X_test_tfidf)
+        classes = lg_grid.classes_
+
+        predicted_probabilities = lg_grid.predict_proba(X_test_tfidf)
+        predicted_label = lg_grid.predict(X_test_tfidf)
 
         df = pd.DataFrame({'line': X_test, 'character': y_test, 'predicted': predicted_label}, index=None)
         df_probabilities = pd.DataFrame(predicted_probabilities, columns=classes, index=df.index).round(3)
@@ -65,12 +76,12 @@ def main():
         result.sort_values(by=['failure'], ascending=False).to_csv(classification_tfidf_path, sep='|')
         print("TF-IDF")
         print("Test set:")
-        print(metrics.classification_report(y_test, lg.predict(X_test_tfidf)))
-        print(metrics.confusion_matrix(y_test, lg.predict(X_test_tfidf)))
+        print(metrics.classification_report(y_test, lg_grid.predict(X_test_tfidf)))
+        print(metrics.confusion_matrix(y_test, lg_grid.predict(X_test_tfidf)))
 
         print("Train set:")
-        print(metrics.classification_report(y_train, lg.predict(X_train_tfidf)))
-        print(metrics.confusion_matrix(y_train, lg.predict(X_train_tfidf)))
+        print(metrics.classification_report(y_train, lg_grid.predict(X_train_tfidf)))
+        print(metrics.confusion_matrix(y_train, lg_grid.predict(X_train_tfidf)))
         print()
 
     def sisters():
@@ -80,7 +91,6 @@ def main():
         X_test, X_validate, y_test, y_validate = \
             train_test_split(X_rest, y_rest, test_size=0.5, random_state=seed)
 
-
         params = {'C': np.logspace(-20, 20, 41), 'penalty': ['l2'], 'max_iter': [500]}
 
         lg = LogisticRegression(multi_class='multinomial')
@@ -88,8 +98,6 @@ def main():
         lg_grid.fit(X_train, y_train['character'])
         print("Tuned hpyerparameters :(best parameters) ", lg_grid.best_params_)
         print("Accuracy :", lg_grid.best_score_)
-        print(y_train['character'].head(10))
-        # lg.fit(X_train, y_train['character'])
 
         classes = lg_grid.classes_
 

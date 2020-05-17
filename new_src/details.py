@@ -15,10 +15,14 @@ def main():
     sisters = pd.read_csv(classification_sisters_path, sep='|', index_col=0)
     tfidf = pd.read_csv(classification_tfidf_path, sep='|', index_col=0)
 
+    sisters_only_false = sisters[sisters['correct'] == False]
+    tfidf_only_false = tfidf[tfidf['correct'] == False]
+
+
     # display_failure_per_line_length(sisters_data)
     # display_failure_per_line_length(tfidf_data)
-    display_failure_per_line_length([(sisters, "Sisters"), (tfidf, "TF-IDF")])
-    display_rank([(sisters, "Sisters"), (tfidf, "TF-IDF")])
+    display_failure_per_line_length([(sisters_only_false, "Sisters"), (tfidf_only_false, "TF-IDF")])
+    display_rank([(sisters_only_false, "Sisters"), (tfidf_only_false, "TF-IDF")])
     # lines_per_character(sisters)
     plt.show()
 

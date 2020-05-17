@@ -12,7 +12,7 @@ dir_transcript_parsed = pathlib.Path.cwd().parent.joinpath('created_files')
 def main():
     created_files_dir = pathlib.Path.cwd().parent.joinpath('created_files')
     parsed_path = created_files_dir.joinpath('processed.csv')
-    embedded_sisters_path = created_files_dir.joinpath('embedded_sisters.csv')
+    embedded_sisters_path = created_files_dir.joinpath('embedded_sisters_word2vec.csv')
     embedded_elmo_path = created_files_dir.joinpath('embedded_elmo.csv')
 
     sisters_dataframe = sisters(parsed_path)
