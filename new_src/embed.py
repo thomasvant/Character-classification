@@ -12,13 +12,12 @@ dir_transcript_parsed = pathlib.Path.cwd().parent.joinpath('created_files')
 def main():
     created_files_dir = pathlib.Path.cwd().parent.joinpath('created_files')
     parsed_path = created_files_dir.joinpath('processed.csv')
-    embedded_sisters_path = created_files_dir.joinpath('embedded_sisters_word2vec.csv')
+    embedded_word2vec_path = created_files_dir.joinpath('embedded_word2vec.csv')
+    embedded_fasttext_path = created_files_dir.joinpath('embedded_fasttext.csv')
     embedded_elmo_path = created_files_dir.joinpath('embedded_elmo.csv')
 
     sisters_dataframe = sisters(parsed_path)
-    print(type(sisters_dataframe))
-    print(sisters_dataframe.shape)
-    sisters_dataframe.to_csv(embedded_sisters_path, sep='|', header=None)
+    sisters_dataframe.to_csv(embedded_fasttext_path, sep='|', header=None)
     # elmo_dataframe.to_csv(embedded_elmo_path, sep='|', header=None)
 
 
@@ -26,9 +25,6 @@ def sisters(path):
     sentence_embedding = sister.MeanEmbedding(lang="en")
 
     parsed_data = pd.read_csv(path, sep='|', index_col=0)
-    print(type(parsed_data))
-    print(parsed_data.shape)
-
     # Pandas series with numpy array values to dataframe
     return pd.DataFrame.from_records(parsed_data['line'].apply(sentence_embedding))
 

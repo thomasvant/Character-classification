@@ -15,15 +15,25 @@ import time
 import numpy as np
 import mpld3
 
-created_files_dir = pathlib.Path.cwd().parent.joinpath('created_files')
+sim_types = ['fasttext', 'word2vec', 'elmo', 'tfidf']
+
+
+def classify_characters(data: pd.DataFrame, type="tfidf"):
+    if type not in sim_types:
+        raise ValueError("Invalid classification type. Expected one of: %s" % sim_types)
+    print("Classifying lines using " + type)
+
+    if type == "tfidf":
+
+    elif type == "fasttext":
+
+    elif type == "word2vec":
+
+    elif type == "elmo":
+
 
 
 def main():
-    parsed_path = created_files_dir.joinpath('processed.csv')
-    embedded_fasttext_path = created_files_dir.joinpath('embedded_fasttext.csv')
-    embedded_word2vec_path = created_files_dir.joinpath('embedded_word2vec.csv')
-    parsed_data = pd.read_csv(parsed_path, sep='|', index_col=0)
-
     # Word2Vec
     # Tuned hyperparameters: (best parameters)
     # {'C': 0.1, 'max_iter': 500, 'penalty': 'l2'}
