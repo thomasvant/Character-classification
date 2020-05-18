@@ -5,21 +5,17 @@ import integration_src.file_manager as fm
 import integration_src.download as dl
 
 
-def parse_episodes():
-    episodes = fm.get_transcripts()
-    if not episodes:
+def parse_episodes(episode_array=fm.get_transcripts()):
+    if not episode_array:
         dl.download_episodes()
-        episodes = fm.get_transcripts()
-    parsed = parse_episodes(episodes)
-    fm.write_transcripts(parsed, "0_parsed")
-
-
-def parse_episodes(episode_array):
+        episode_array = fm.get_transcripts()
     print("Parsing episodes")
     p = {"parsed": pd.concat(
         [pd.DataFrame(parse_episode(episode), columns=['character', 'line']) for episode in episode_array],
         ignore_index=True)}
-    return pd.concat(p, axis=1)
+    parsed = pd.concat(p, axis=1)
+    fm.write_transcripts(parsed, "0_parsed")
+    return parsed
 
 
 def parse_episode(file):

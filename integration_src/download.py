@@ -3,14 +3,9 @@ from typing import List, Optional
 import integration_src.file_manager as fm
 
 
-def download_episodes():
-    episodes = download_episodes(845, 31373, 31600)
-    fm.write_transcripts(episodes)
-
-
-def download_episodes(forum_id: int, ep_id_min: int, ep_id_max: int):
+def download_episodes(forum_id:int =845, ep_id_min: int=31373, ep_id_max: int=31600):
     episode_content_array = [download_episode(forum_id, cur) for cur in range(ep_id_min, ep_id_max)]
-
+    fm.write_transcripts(episode_content_array)
     return episode_content_array
 
 

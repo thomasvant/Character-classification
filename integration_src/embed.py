@@ -9,21 +9,10 @@ import integration_src.parse as parse
 sim_types = ['fasttext', 'word2vec', 'elmo']
 
 
-def embed_transcripts(type="fasttext"):
-    if type not in sim_types:
-        raise ValueError("Invalid embedding type. Expected one of: %s" % sim_types)
-
-    data = fm.get_df("0_parsed")
+def embed_transcripts(data: pd.DataFrame=fm.get_df("0_parsed"), type="fasttext") -> pd.DataFrame:
     if not data:
         parse.parse_episodes()
         data = fm.get_df("0_parsed")
-
-    embedded = embed_transcripts(data, type=type)
-    fm.write_df(embedded, "1_embedded_" + type)
-    return embedded
-
-
-def embed_transcripts(data: pd.DataFrame, type="fasttext") -> pd.DataFrame:
     if type not in sim_types:
         raise ValueError("Invalid embedding type. Expected one of: %s" % sim_types)
     print("Embedding transcripts using " + type)
@@ -34,7 +23,10 @@ def embed_transcripts(data: pd.DataFrame, type="fasttext") -> pd.DataFrame:
         embedded = elmo(data["parsed"]["line"])
 
     d = {"embedded": pd.DataFrame.from_records(embedded)}
-    return data.join(pd.concat(d, axis=1))
+    embedded = data.join(pd.concat(d, axis=1))
+
+    fm.write_df(embedded, "1_embedded_" + type)
+    return embedded
 
 
 def sisters(data, type="fasttext"):
