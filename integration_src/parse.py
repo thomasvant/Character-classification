@@ -5,16 +5,18 @@ import integration_src.file_manager as fm
 import integration_src.download as dl
 
 
-def parse_episodes(episode_array=fm.get_transcripts()):
-    if not episode_array:
+def parse_episodes(episode_array=None):
+    if episode_array is None:
+        episode_array = fm.get_transcripts()
+    if episode_array is None:
         dl.download_episodes()
         episode_array = fm.get_transcripts()
     print("Parsing episodes")
     p = {"parsed": pd.concat(
-        [pd.DataFrame(parse_episode(episode), columns=['character', 'line']) for episode in episode_array],
+        [pd.DataFrame(parse_episode(episode), columns=['character', 'line', 'wordcount']) for episode in episode_array],
         ignore_index=True)}
     parsed = pd.concat(p, axis=1)
-    fm.write_transcripts(parsed, "0_parsed")
+    fm.write_df(parsed, "0_parsed")
     return parsed
 
 
@@ -38,7 +40,7 @@ def parse_string(string):
     if character_array and line_array is not None:
         for character in character_array:
             for line in line_array:
-                string_array.append([character, line])
+                string_array.append([character, line, words_per_line(line)])
     return string_array
 
 
@@ -55,18 +57,11 @@ def replace_words(string):
         'f.y.i.': 'fyi',
         'p.m.': '',
         'a.m.': '',
-        's.a.t.s.': 'sats'
+        's.a.t.s.': 'sats',
+        "’" : "'"
     }
     for k, v in word_mappings.items():
         string = string.replace(k, v)
-    return string
-
-
-def stem(string):
-    word_array = []
-    for word in string.split(' '):
-        word_array.append(word)
-    string = ' '.join(word_array)
     return string
 
 
@@ -116,7 +111,6 @@ def split_and_process_lines(string):
         line = remove_punctuation(line)
         line = remove_redundant_spaces(line)
         if words_per_line(line) > 1:
-            # line = stem(line)
             lines.append(line)
     lines = list(filter(None, lines))
     return lines

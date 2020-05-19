@@ -1,29 +1,26 @@
-import pathlib
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
-from sklearn.manifold import TSNE
-from sklearn.decomposition import PCA
-import seaborn as sns
 from sklearn.linear_model import LogisticRegression
-from sklearn import metrics
-from sklearn.metrics import log_loss
-import matplotlib.pyplot as plt
-import time
 import numpy as np
 import integration_src.file_manager as fm
 import integration_src.embed as embed
-import mpld3
 
 sim_types = ['fasttext', 'word2vec', 'elmo', 'tfidf']
 
 
-def classify_characters(data=fm.get_df("0_parsed"), type="tfidf", C=None, max_iter=None, cv=None):
-    if type not in sim_types:
-        raise ValueError("Invalid classification type. Expected one of: %s" % sim_types)
-    print("Classifying lines using " + type)
+def classify_characters(data=None, class_type="tfidf", grid=False, C=None, max_iter=None, cv=None):
+    if class_type not in sim_types:
+        raise ValueError("Invalid classification type " + class_type + ". Expected one of: %s" % sim_types)
+    print("Classifying lines using " + class_type)
+    if data is None:
+        if class_type == "tfidf":
+            data = fm.get_df("0_parsed")
+        else:
+            data = fm.get_df("1_embedded_" + class_type)
+            if data is None:
+                data = embed.embed_transcripts(type=class_type)
 
     train, non_train = train_test_split(data, random_state=1515, train_size=0.6)
     test, validate = train_test_split(non_train, random_state=1515, train_size=0.5)
@@ -31,28 +28,48 @@ def classify_characters(data=fm.get_df("0_parsed"), type="tfidf", C=None, max_it
     y_train = train["parsed"]["character"]
     y_test = test["parsed"]["character"]
 
-    if type == "tfidf":
+    if class_type == "tfidf":
         tfidf = TfidfVectorizer()
         x_train = tfidf.fit_transform(train["parsed"]["line"])
         x_test = tfidf.transform(test["parsed"]["line"])
-    elif type == ("fasttext" or "word2vec" or "elmo"):
+    else:
         x_train = train["embedded"]
         x_test = test["embedded"]
 
-    params = {"C": np.logspace(-5, 5, 21), 'max_iter': [100, 500, 1000, 2000, 5000]}
-    if C:
-        params["C"] = C if type(C) is list else [C]
-    if max_iter:
-        params["max_iter"] = max_iter if type(max_iter) is list else [max_iter]
-    lg = GridSearchCV(LogisticRegression(multi_class="multinomial"), params, verbose=3, n_jobs=-1, cv=cv)
+    if grid:
+        params = {"C": np.logspace(-5, 5, 21), 'max_iter': [100, 500, 1000, 2000, 5000]}
+        if C:
+            params["C"] = C if class_type is list else [C]
+        if max_iter:
+            params["max_iter"] = max_iter if class_type is list else [max_iter]
+        lg = GridSearchCV(LogisticRegression(multi_class="multinomial"), params, verbose=3, n_jobs=-1, cv=cv)
+    else:
+        lg = LogisticRegression(multi_class="multinomial", C=C if C else 1, max_iter=max_iter if max_iter else 500)
     lg.fit(x_train, y_train)
-    print("Best parameters: ", lg.best_params_)
+
+    if grid:
+        print("Best parameters: ", lg.best_params_)
 
     predicted_probability_df = pd.DataFrame(lg.predict_proba(x_test), columns=lg.classes_, index=y_test.index)
-    predicted = lg.predict(x_test)
+    confidence_df = pd.DataFrame(lg.decision_function(x_test), columns=lg.classes_, index=y_test.index)
 
-    d = {"parsed": x_test["parsed"],
-         "classified": pd.DataFrame([predicted, y_test == predicted], columns=["character","is_correct"], index=y_test.index),
+    predicted = pd.DataFrame(lg.predict(x_test), columns=["character"],index=y_test.index)
+    confidence_prediction_series = pd.concat([predicted,confidence_df], axis=1)\
+        .apply(lambda x: x[x["character"]], axis=1)
+    confidence_prediction_df = pd.DataFrame(confidence_prediction_series, columns=["predicted"])
+    confidence_character_series = pd.concat([y_test, confidence_df], axis=1) \
+        .apply(lambda x: x[x["character"]], axis=1)
+    confidence_character_df = pd.DataFrame(confidence_character_series, columns=["character"])
+
+    is_correct = predicted["character"].eq(y_test).to_frame(name="is_correct")
+
+    # confidence = pd.DataFrame(lg.decision_function(x_test), columns=["confidence"],index=y_test.index)
+
+    d = {"parsed": test["parsed"],
+         "classified": pd.concat([predicted,is_correct], axis=1),
+         "confidence": pd.concat([confidence_prediction_df, confidence_character_df], axis=1),
+         "confidence_per_character": confidence_df,
          "predicted_probabilities": predicted_probability_df}
-
-    return pd.concat(d, axis=1)
+    data = pd.concat(d, axis=1)
+    fm.write_df(data, "2_classified_" + class_type)
+    return data
