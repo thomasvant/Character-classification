@@ -49,3 +49,4 @@ def benchmark(data=None, class_type="tfidf", only_wrong=False):
     new_data = pd.concat(d, axis=1).sort_index()
     fm.write_df(new_data, "3_benchmark_" + class_type)
     return new_data
+

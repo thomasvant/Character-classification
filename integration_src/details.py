@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pylab as plt
 import numpy as np
 import integration_src.file_manager as fm
+from sklearn import metrics
+import integration_src.file_manager as fm
 
 
 def display_lines_length(data):
@@ -53,6 +55,14 @@ def display_benchmark(benchmark_type="confidence_character"):
     plt.legend(labels)
     plt.show()
 
+
+def confusion_matrix(type="tfidf"):
+    print("Confusion matrix for " + type)
+    data = fm.get_df("2_classified_" + type)
+    parsed_character = data["parsed"]["character"].tolist()
+    classified_character = data["classified"]["character"].tolist()
+    print(metrics.classification_report(parsed_character, classified_character))
+    print(metrics.confusion_matrix(parsed_character, classified_character))
 
 def display_rank(data_array):
     width = 1.0/len(data_array)-0.2 #create space around bars

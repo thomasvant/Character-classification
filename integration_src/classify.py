@@ -10,7 +10,7 @@ import integration_src.embed as embed
 sim_types = ['fasttext', 'word2vec', 'elmo', 'tfidf']
 
 
-def classify_characters(data=None, class_type="tfidf", grid=False, C=None, max_iter=None, cv=None):
+def classify_characters(data=None, class_type="tfidf", grid=False, C=None, max_iter=None, cv=None, min_wordcount=None, verbose=3):
     if class_type not in sim_types:
         raise ValueError("Invalid classification type " + class_type + ". Expected one of: %s" % sim_types)
     print("Classifying lines using " + class_type)
@@ -21,6 +21,9 @@ def classify_characters(data=None, class_type="tfidf", grid=False, C=None, max_i
             data = fm.get_df("1_embedded_" + class_type)
             if data is None:
                 data = embed.embed_transcripts(type=class_type)
+
+    if min_wordcount:
+        data = data[data["parsed"]["wordcount"] > min_wordcount]
 
     train, non_train = train_test_split(data, random_state=1515, train_size=0.6)
     test, validate = train_test_split(non_train, random_state=1515, train_size=0.5)
@@ -37,12 +40,12 @@ def classify_characters(data=None, class_type="tfidf", grid=False, C=None, max_i
         x_test = test["embedded"]
 
     if grid:
-        params = {"C": np.logspace(-5, 5, 21), 'max_iter': [100, 500, 1000, 2000, 5000]}
+        params = {"C": np.logspace(-5, 5, 11), 'max_iter': [500, 1000, 2000]}
         if C:
             params["C"] = C if class_type is list else [C]
         if max_iter:
             params["max_iter"] = max_iter if class_type is list else [max_iter]
-        lg = GridSearchCV(LogisticRegression(multi_class="multinomial"), params, verbose=3, n_jobs=-1, cv=cv)
+        lg = GridSearchCV(LogisticRegression(multi_class="multinomial"), params, verbose=verbose, n_jobs=-1, cv=cv)
     else:
         lg = LogisticRegression(multi_class="multinomial", C=C if C else 1, max_iter=max_iter if max_iter else 500)
     lg.fit(x_train, y_train)
