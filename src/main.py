@@ -21,10 +21,11 @@ benchmarks = {
 }
 
 src.parse()
-for feature in features.learned.keys():
-    src.embed(technique=feature, unique=options.unique)
-for feature, details in features.values():
-    src.classify(technique=feature, unique=options.unique)
-    src.benchmark(technique=feature, only_wrong=options.only_wrong)
+for feature in features.get("learned").keys():
+    src.embed(technique=feature, unique=options.get("unique"))
+for technique, features in features.items():
+    for feature, details in features.items():
+        src.classify(technique=feature, unique=options.get("unique"))
+        src.benchmark(technique=feature, only_wrong=options.get("only_wrong"))
 for benchmark in benchmarks.keys():
     src.display_benchmark(benchmark_type=benchmark)

@@ -14,7 +14,7 @@ def embed(technique="fasttext", unique=False):
     if technique not in techniques:
         raise ValueError("Invalid embedding type. Expected one of: %s" % technique)
     print("Embedding transcripts using " + technique)
-    data = fm.get_df(technique, unique=unique)
+    data = fm.get_df("0_parsed", unique=unique)
 
     if technique == "fasttext" or technique == "word2vec":
         embedded = sisters(data["parsed"]["line"], technique)
@@ -24,7 +24,7 @@ def embed(technique="fasttext", unique=False):
     d = {"embedded": pd.DataFrame.from_records(embedded)}
     embedded = data.join(pd.concat(d, axis=1))
 
-    fm.write_df(embedded, "1_embedded_" + type)
+    fm.write_df(embedded, "1_embedded_" + technique)
     return embedded
 
 
