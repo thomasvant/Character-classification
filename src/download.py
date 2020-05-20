@@ -1,15 +1,21 @@
 import requests
-import pathlib
-from bs4 import BeautifulSoup as bs
+from typing import List, Optional
+import src.file_manager as fm
 
-dir_transcript = pathlib.Path.cwd().parent.joinpath('transcripts')
-dir_transcript.mkdir(parents=True, exist_ok=True)
+__all__ = ["download_episodes"]
 
-for n in range(31373, 31600):
-    url = 'https://transcripts.foreverdreaming.org/viewtopic.php?f=845&t=' + str(n) + '&view=print'
+def download_episodes(forum_id:int =845, ep_id_min: int=31373, ep_id_max: int=31600):
+    episode_content_array = [download_episode(forum_id, cur) for cur in range(ep_id_min, ep_id_max)]
+    fm.write_transcripts(episode_content_array)
+    return episode_content_array
+
+
+def download_episode(forum_id, ep_id):
+    print("Downloading episode " + str(ep_id))
+    url = 'https://transcripts.foreverdreaming.org/viewtopic.php?f=' + str(forum_id) + '&t=' + str(
+        ep_id) + '&view=print'
     r = requests.get(url)
     if r.status_code == 200:
-        ep = bs(r.content, 'html.parser').select('.topic')[0].string.split(' ')[0]
-        with open(dir_transcript.joinpath(ep + ".html"), 'wb') as f:
-            f.write(r.content)
-        print("Downloaded " + ep)
+        return r.content
+    else:
+        return None
