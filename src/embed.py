@@ -1,10 +1,7 @@
 import pandas as pd
 import time
-import sister
-from sister import word_embedders
 import numpy as np
 import src.file_manager as fm
-import src.parse as parse
 
 techniques = ['fasttext', 'word2vec', 'elmo']
 
@@ -29,6 +26,8 @@ def embed(technique="fasttext", unique=False):
 
 
 def sisters(data, technique="fasttext"):
+    import sister
+    from sister import word_embedders
     if technique == "fasttext":
         word_embedder = sister.word_embedders.FasttextEmbedding("en")
     else:
@@ -57,7 +56,7 @@ def elmo(data):
 
     start_time = time.time()
 
-    data_split = [data[i:i + 100] for i in range(0, data.shape[0], 100)]
+    data_split = [data[i:i + 50] for i in range(0, data.shape[0], 50)]
     cur = 1
     total = len(data_split)
     embedded_data = []

@@ -1,5 +1,4 @@
 import requests
-from typing import List, Optional
 import src.file_manager as fm
 
 __all__ = ["download_episodes"]

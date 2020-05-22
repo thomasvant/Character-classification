@@ -5,8 +5,30 @@ import numpy as np
 import src.file_manager as fm
 from sklearn import metrics
 import src.file_manager as fm
+import src
 
-__all__ = ["display_benchmark", "confusion_matrix"]
+__all__ = ["display_benchmark", "confusion_matrix", "accuracy_per_min_wordcount"]
+
+
+def accuracy_per_min_wordcount(min, max, unique=False):
+    features = {
+        "word2vec": {},
+        "fasttext": {},
+        "tfidf": {}
+    }
+    features_keys = features.copy().keys()
+
+    for i in range(min, max):
+        for feature in features_keys:
+            print("Min wordcount: " + str(i))
+            data, best_params = src.classify(technique=feature, unique=unique, grid=True)
+            accuracy = metrics.accuracy_score(y_true=data["parsed"]["character"],y_pred=data["classified"]["character"])
+            best_params["accuracy"]= accuracy
+            features.update({i:best_params})
+            print(feature)
+    data = pd.DataFrame(features)
+    fm.write_df(pd.DataFrame(features),"4_accuracy_per_min_wordcount")
+    return data
 
 def display_lines_length(data):
     dictionary = {}

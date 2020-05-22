@@ -52,7 +52,8 @@ def classify(data=None, technique="tfidf", grid=False, C=None, max_iter=None, cv
     lg.fit(x_train, y_train)
 
     if grid:
-        print("Best parameters: ", lg.best_params_)
+        best = lg.best_params_
+        print("Best parameters: ", best)
 
     predicted_probability_df = pd.DataFrame(lg.predict_proba(x_test), columns=lg.classes_, index=y_test.index)
     confidence_df = pd.DataFrame(lg.decision_function(x_test), columns=lg.classes_, index=y_test.index)
@@ -76,4 +77,4 @@ def classify(data=None, technique="tfidf", grid=False, C=None, max_iter=None, cv
          "predicted_probabilities": predicted_probability_df}
     data = pd.concat(d, axis=1)
     fm.write_df(data, "2_classified_" + technique)
-    return data
+    return data, best
