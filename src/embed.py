@@ -43,7 +43,7 @@ def elmo(data):
     import tensorflow.compat.v1 as tf
 
     tf.disable_eager_execution()
-    elmo = hub.Module("../modules/elmo3", trainable=False)
+    elmo = hub.Module("modules/elmo3", trainable=False)
 
     def embed(sentences):
         embeddings = elmo(sentences, signature="default", as_dict=True)["elmo"]

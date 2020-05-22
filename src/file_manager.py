@@ -6,8 +6,8 @@ import pandas as pd
 
 __all__ = ['write_transcripts', 'get_transcripts', 'write_df', 'get_df']
 
-transcripts_dir = pathlib.Path.cwd().parent.joinpath('transcripts')
-created_files_dir = pathlib.Path.cwd().parent.joinpath('created_files')
+transcripts_dir = pathlib.Path.cwd().joinpath('transcripts')
+created_files_dir = pathlib.Path.cwd().joinpath('created_files')
 
 
 def write_transcripts(transcript_files) -> None:
