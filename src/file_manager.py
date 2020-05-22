@@ -1,6 +1,5 @@
 import pathlib
 from pathlib import Path
-from typing import List, Optional
 
 import pandas as pd
 
@@ -10,7 +9,7 @@ transcripts_dir = pathlib.Path.cwd().joinpath('transcripts')
 created_files_dir = pathlib.Path.cwd().joinpath('created_files')
 
 
-def write_transcripts(transcript_files) -> None:
+def write_transcripts(transcript_files):
     from bs4 import BeautifulSoup as bs
     transcripts_dir.mkdir(parents=True, exist_ok=True)
 
@@ -25,12 +24,12 @@ def get_transcripts():
     return [open(path, encoding="utf8") for path in transcripts_dir.iterdir()]
 
 
-def write_df(df: pd.DataFrame, filename: str) -> None:
+def write_df(df: pd.DataFrame, filename: str):
     created_files_dir.mkdir(parents=True, exist_ok=True)
     df.to_csv(created_files_dir.joinpath(filename + ".csv"), sep='|')
 
 
-def get_df(filename: str, unique=False) -> Optional[pd.DataFrame]:
+def get_df(filename: str, unique=False):
     path = created_files_dir.joinpath(filename + ".csv")
     if path.is_file():
         data = pd.read_csv(created_files_dir.joinpath(filename + ".csv"), header=[0,1], sep='|', index_col=0)
