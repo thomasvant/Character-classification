@@ -6,20 +6,19 @@ import pandas as pd
 
 __all__ = ['write_transcripts', 'get_transcripts', 'write_df', 'get_df']
 
-transcripts_dir: Path = pathlib.Path.cwd().parent.joinpath('transcripts')
-transcripts_dir.mkdir(parents=True, exist_ok=True)
-
-created_files_dir: Path = pathlib.Path.cwd().parent.joinpath('created_files')
-created_files_dir.mkdir(parents=True, exist_ok=True)
+transcripts_dir = pathlib.Path.cwd().parent.joinpath('transcripts')
+created_files_dir = pathlib.Path.cwd().parent.joinpath('created_files')
 
 
 def write_transcripts(transcript_files) -> None:
     from bs4 import BeautifulSoup as bs
+    transcripts_dir.mkdir(parents=True, exist_ok=True)
 
     for file in transcript_files:
-        ep = bs(file.content, "html.parser").select('.topic')[0].string.split(' ')[0]
+        bs_file = bs(file, "html.parser")
+        ep = bs_file.select('.topic')[0].string.split(' ')[0]
         with open(transcripts_dir.joinpath(ep + ".html"), 'wb') as f:
-            f.write(file.content)
+            f.write(file)
 
 
 def get_transcripts():
@@ -27,6 +26,7 @@ def get_transcripts():
 
 
 def write_df(df: pd.DataFrame, filename: str) -> None:
+    created_files_dir.mkdir(parents=True, exist_ok=True)
     df.to_csv(created_files_dir.joinpath(filename + ".csv"), sep='|')
 
 
