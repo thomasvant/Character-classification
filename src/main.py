@@ -36,4 +36,5 @@ benchmarks = {
 #     src.display_benchmark(benchmark_type=benchmark)
 
 # src.accuracy_per_min_wordcount(2, 42, unique=True)
+src.parse()
 src.embed(technique="elmo", unique=True)

@@ -4,3 +4,4 @@ from .parse import *
 from .classify import *
 from .benchmark import *
 from .details import *
+from .download import *
