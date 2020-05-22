@@ -1,4 +1,3 @@
-pathlib
 tensorflow==2.1.0
 scikit-learn
 pathlib
@@ -6,6 +5,4 @@ requests
 numpy
 pandas
 sklearn
-time
-typing
-bs4
+beautifulsoup4
