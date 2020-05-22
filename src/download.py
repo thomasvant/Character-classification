@@ -3,7 +3,7 @@ import src.file_manager as fm
 
 __all__ = ["download_episodes"]
 
-def download_episodes(forum_id:int =845, ep_id_min: int=31373, ep_id_max: int=31600):
+def download_episodes(forum_id =845, ep_id_min=31373, ep_id_max=31600):
     episode_content_array = [download_episode(forum_id, cur) for cur in range(ep_id_min, ep_id_max)]
     fm.write_transcripts(episode_content_array)
     return episode_content_array

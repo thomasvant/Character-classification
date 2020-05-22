@@ -29,7 +29,7 @@ def write_df(df: pd.DataFrame, filename: str):
     df.to_csv(created_files_dir.joinpath(filename + ".csv"), sep='|')
 
 
-def get_df(filename: str, unique=False):
+def get_df(filename, unique=False):
     path = created_files_dir.joinpath(filename + ".csv")
     if path.is_file():
         data = pd.read_csv(created_files_dir.joinpath(filename + ".csv"), header=[0,1], sep='|', index_col=0)
