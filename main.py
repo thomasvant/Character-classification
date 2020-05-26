@@ -1,13 +1,8 @@
 import src
 
 features = {
-    "learned": {
-        "word2vec": {},
-        "fasttext": {}
-    },
-    "hand_crafted": {
-        "tfidf": {}
-    }
+    "tfidf": {},
+    "fasttext": {}
 }
 options = {
     "unique": True,
@@ -16,26 +11,25 @@ options = {
         "enabled": True,
         "min": 2,
         "max": 30
-    }
+    },
+    "correct_spelling": False,
+    "stemming": False,
+    "remove_stopwords": False,
+    "expand_contractions": True
 }
 
 benchmarks = {
-    "confidence_character":{},
-    "confidence_predicted":{},
-    "cross_entropy_loss":{}
+    "accuracy":{},
+    "cross_entropy":{},
+    "predict_proba_predicted_character":{}
 }
 
-# src.parse()
-# for feature in features.get("learned").keys():
-#     src.embed(technique=feature, unique=options.get("unique"))
-# for technique, features in features.items():
-#     for feature, details in features.items():
-#         src.classify(technique=feature, unique=options.get("unique"))
-#         src.benchmark(technique=feature, only_wrong=options.get("only_wrong"))
-# for benchmark in benchmarks.keys():
-#     src.display_benchmark(benchmark_type=benchmark)
+for k, v in features.items():
+    # src.classify(technique=k, unique=options.get("unique"))
+    src.confusion_matrix(technique=k)
 
-# src.accuracy_per_min_wordcount(2, 42, unique=True)
-# src.download_episodes()
-src.parse()
-src.embed(technique="elmo")
+# src.benchmark_per_wordcount()
+# src.benchmark_per_min_wordcount(grid=True)
+
+# for k, v in benchmarks.items():
+#     src.display_benchmark_per_wordcount(benchmark=k, min_wordcount=True)

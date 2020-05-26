@@ -3,9 +3,10 @@ import time
 import numpy as np
 import src.file_manager as fm
 
-techniques = ['fasttext', 'word2vec', 'elmo']
+techniques = ['fasttext', 'word2vec', 'elmo', 'tfidf']
 
 __all__ = ["embed"]
+
 
 def embed(technique="fasttext", unique=False):
     if technique not in techniques:

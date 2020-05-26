@@ -8,3 +8,6 @@ pandas
 sklearn
 beautifulsoup4
 matplotlib
+autocorrect
+nltk
+pycontractions

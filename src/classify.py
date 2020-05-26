@@ -11,7 +11,8 @@ sim_types = ['fasttext', 'word2vec', 'elmo', 'tfidf']
 
 __all__ = ["classify"]
 
-def classify(data=None, technique="tfidf", grid=False, C=None, max_iter=None, cv=None, min_wordcount=None, verbose=0, unique=False):
+
+def classify(data=None, technique="tfidf", grid=False, C=None, max_iter=None, cv=None, min_wordcount=None, verbose=0, unique=False, write=True):
     if technique not in sim_types:
         raise ValueError("Invalid classification type " + technique + ". Expected one of: %s" % sim_types)
     print("Classifying lines using " + technique)
@@ -40,8 +41,9 @@ def classify(data=None, technique="tfidf", grid=False, C=None, max_iter=None, cv
         x_train = train["embedded"]
         x_test = test["embedded"]
 
+
     if grid:
-        params = {"C": np.logspace(-5, 5, 11), 'max_iter': [500, 1000, 2000]}
+        params = {"C": np.logspace(-10, 5, 16), 'max_iter': [500, 1000, 2000]}
         if C:
             params["C"] = C if technique is list else [C]
         if max_iter:
@@ -49,32 +51,44 @@ def classify(data=None, technique="tfidf", grid=False, C=None, max_iter=None, cv
         lg = GridSearchCV(LogisticRegression(multi_class="multinomial"), params, verbose=verbose, n_jobs=-1, cv=cv)
     else:
         lg = LogisticRegression(multi_class="multinomial", C=C if C else 1, max_iter=max_iter if max_iter else 500)
+
     lg.fit(x_train, y_train)
 
     if grid:
         best = lg.best_params_
         print("Best parameters: ", best)
+    else:
+        best = None
 
-    predicted_probability_df = pd.DataFrame(lg.predict_proba(x_test), columns=lg.classes_, index=y_test.index)
-    confidence_df = pd.DataFrame(lg.decision_function(x_test), columns=lg.classes_, index=y_test.index)
+    predict_proba_df = pd.DataFrame(lg.predict_proba(x_test), columns=lg.classes_, index=y_test.index)
+    decision_function_df = pd.DataFrame(lg.decision_function(x_test), columns=lg.classes_, index=y_test.index)
 
-    predicted = pd.DataFrame(lg.predict(x_test), columns=["character"],index=y_test.index)
-    confidence_prediction_series = pd.concat([predicted,confidence_df], axis=1)\
+    predict_df = pd.DataFrame(lg.predict(x_test), columns=["character"],index=y_test.index)
+
+    predict_proba_character_series = pd.concat([y_test, predict_proba_df], axis=1)\
         .apply(lambda x: x[x["character"]], axis=1)
-    confidence_prediction_df = pd.DataFrame(confidence_prediction_series, columns=["predicted"])
-    confidence_character_series = pd.concat([y_test, confidence_df], axis=1) \
+    predict_proba_predicted_series = pd.concat([predict_df, predict_proba_df], axis=1)\
         .apply(lambda x: x[x["character"]], axis=1)
-    confidence_character_df = pd.DataFrame(confidence_character_series, columns=["character"])
+    predict_proba_specific_df = pd.concat([predict_proba_character_series, predict_proba_predicted_series], keys=["actual_character", "predicted_character"], axis=1)
 
-    is_correct = predicted["character"].eq(y_test).to_frame(name="is_correct")
+    decision_function_character_series = pd.concat([y_test, decision_function_df], axis=1)\
+        .apply(lambda x: x[x["character"]], axis=1)
+    decision_function_predicted_series = pd.concat([predict_df, decision_function_df], axis=1) \
+        .apply(lambda x: x[x["character"]], axis=1)
+    decision_function_specific_df = pd.concat([decision_function_character_series, decision_function_predicted_series], keys=["actual_character", "predicted_character"], axis=1)
+
+
+    is_correct_df = predict_df["character"].eq(y_test).to_frame(name="is_correct")
 
     # confidence = pd.DataFrame(lg.decision_function(x_test), columns=["confidence"],index=y_test.index)
 
     d = {"parsed": test["parsed"],
-         "classified": pd.concat([predicted,is_correct], axis=1),
-         "confidence": pd.concat([confidence_prediction_df, confidence_character_df], axis=1),
-         "confidence_per_character": confidence_df,
-         "predicted_probabilities": predicted_probability_df}
+         "classified": pd.concat([predict_df,is_correct_df], axis=1),
+         "predict_proba_specific": predict_proba_specific_df,
+         "decision_function_specific": decision_function_specific_df,
+         "predict_proba_": predict_proba_df,
+         "decision_function": decision_function_df}
     data = pd.concat(d, axis=1)
-    fm.write_df(data, "2_classified_" + technique)
+    if write:
+        fm.write_df(data, "2_classified_" + technique)
     return data, best

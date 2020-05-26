@@ -2,20 +2,29 @@ from bs4 import BeautifulSoup as bs
 import re
 import pandas as pd
 import src.file_manager as fm
-import src.download as dl
+from nltk.corpus import stopwords
+from autocorrect import Speller
+from nltk.stem import PorterStemmer
+from pycontractions import Contractions
+
 
 __all__ = ['parse']
+stop_words = set(stopwords.words('english'))
+ps = PorterStemmer()
+spell = Speller()
+cont = Contractions(api_key="glove-twitter-100")
 
-def parse():
+
+def parse(correct_spelling=False, stemming=False, remove_stopwords=False, expand_contractions=True):
     print("Parsing episodes")
 
     episode_array = fm.get_transcripts()
 
     lines = []
     for episode in episode_array:
-        lines.extend(parse_episode(episode))
+        lines.extend(parse_episode(episode, correct_spelling, stemming, remove_stopwords, expand_contractions))
 
-    df = pd.DataFrame(lines, columns=["character", "line", "wordcount"])
+    df = pd.DataFrame(lines, columns=["character", "line", "wordcount", "stopwordcount"])
     df['is_unique'] = ~df['line'].duplicated(keep=False)
     ml = {'parsed': df}
     ml_df = pd.concat(ml, axis=1)
@@ -23,27 +32,27 @@ def parse():
     return ml_df
 
 
-def parse_episode(file):
+def parse_episode(file, correct_spelling=False, stemming=False, remove_stopwords=False, expand_contractions=True):
     episode_soup = bs(file, 'html.parser')
     string_array = []
     for p_tag in episode_soup.select('p'):
-        string_array.extend(parse_string(str(p_tag.text)))
+        string_array.extend(parse_string(str(p_tag.text), correct_spelling, stemming, remove_stopwords, expand_contractions))
     return string_array
 
 
-def parse_string(string):
+def parse_string(string, correct_spelling=False, stemming=False, remove_stopwords=False, expand_contractions=True):
     string = remove_new_lines(string)
     string = decapitalize(string)
     string = replace_words(string)
     string = remove_scene_directions(string)
     character, line = split_sentence_from_character(string)
     character_array = split_and_process_characters(character)
-    line_array = split_and_process_lines(line)
+    line_array = split_and_process_lines(line, correct_spelling, stemming, remove_stopwords, expand_contractions)
     string_array = []
     if character_array and line_array is not None:
         for character in character_array:
             for line in line_array:
-                string_array.append([character, line, words_per_line(line)])
+                string_array.append([character, line, words_per_line(line), count_stopwords(line)])
     return string_array
 
 
@@ -61,7 +70,8 @@ def replace_words(string):
         'p.m.': '',
         'a.m.': '',
         's.a.t.s.': 'sats',
-        "’" : "'"
+        "’" : "'",
+        "c'mon": "come on"
     }
     for k, v in word_mappings.items():
         string = string.replace(k, v)
@@ -106,17 +116,45 @@ def words_per_line(string):
     return len(string.split(' '))
 
 
-def split_and_process_lines(string):
+def split_and_process_lines(string, correct_spelling=False, stemming=False, remove_stopwords=False, expand_contractions=False):
     if string is None:
         return None
     lines = []
     for line in re.split("[.?!]", string):
         line = remove_punctuation(line)
         line = remove_redundant_spaces(line)
-        if words_per_line(line) > 1:
-            lines.append(line)
-    lines = list(filter(None, lines))
+        if expand_contractions:
+            line = contractions(line)
+        line_array = line.split(" ")
+        if correct_spelling:
+            line_array = autocorrect(line_array)
+        if stemming:
+            line_array = stem(line_array)
+        if remove_stopwords:
+            line_array = stopwords(line_array)
+        if len(line_array) > 1:
+            lines.append(" ".join(line_array))
     return lines
+
+
+def contractions(line):
+    return list(cont.expand_texts([line]))[0]
+
+
+def autocorrect(string_array):
+    return [spell(w) for w in string_array]
+
+
+def stem(string_array):
+    return [ps.stem(w) for w in string_array]
+
+
+def stopwords(string_array):
+    return [w for w in string_array if not w in stop_words]
+
+
+def count_stopwords(string):
+    return len([w for w in string.split(" ") if w in stop_words])
 
 
 def remove_punctuation(string):
