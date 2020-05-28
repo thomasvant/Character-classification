@@ -45,7 +45,7 @@ def classify(data=None, technique="tfidf", train_data=None, test_data=None, grid
 
 
     if grid:
-        params = {"C": np.logspace(-10, 5, 16), 'max_iter': [250,500,750]}
+        params = {"C": np.logspace(-10, 10, 16), 'max_iter': [250,500,750,1000]}
         if C:
             params["C"] = C if technique is list else [C]
         if max_iter:

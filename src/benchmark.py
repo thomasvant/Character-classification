@@ -69,11 +69,20 @@ def benchmark_per_wordcount(grid=False):
 def benchmark_change_data(train_or_test="test", grid=True, min=2, max=30):
     print("Benchmarking using new method from " + str(min) + " to " + str(max))
 
-    dictionary = {
-        "accuracy": [],
-        "cross_entropy": [],
-        "predict_proba_predicted_character": [],
-    }
+    if train_or_test=="test":
+        dictionary = {
+            "accuracy": [],
+            "cross_entropy": [],
+            "predict_proba_predicted_character": [],
+        }
+    else:
+        dictionary = {
+            "accuracy": [],
+            "cross_entropy": [],
+            "predict_proba_predicted_character": [],
+            "C":[],
+            "max_iter":[]
+        }
     fasttext_dict = deepcopy(dictionary)
     tfidf_dict = deepcopy(dictionary)
 
@@ -98,6 +107,8 @@ def benchmark_change_data(train_or_test="test", grid=True, min=2, max=30):
             log_loss(classified_data["parsed"]["character"], classified_data["predict_proba_"], labels=labels))
         fasttext_dict.get("predict_proba_predicted_character").append(
             classified_data["predict_proba_specific"]["predicted_character"].mean())
+        fasttext_dict.get("C").append(params.get("C"))
+        fasttext_dict.get("max_iter").append(params.get("max_iter"))
         print(fasttext_dict)
 
     data = src.file_manager.get_df("0_parsed")
@@ -121,6 +132,8 @@ def benchmark_change_data(train_or_test="test", grid=True, min=2, max=30):
             log_loss(classified_data["parsed"]["character"], classified_data["predict_proba_"], labels=labels))
         tfidf_dict.get("predict_proba_predicted_character").append(
             classified_data["predict_proba_specific"]["predicted_character"].mean())
+        tfidf_dict.get("C").append(params.get("C"))
+        tfidf_dict.get("max_iter").append(params.get("max_iter"))
         print(tfidf_dict)
 
     tfidf_df = pd.concat([pd.Series(v, index=wordcount_range) for k, v in tfidf_dict.items()],

@@ -31,9 +31,9 @@ benchmarks = {
 # src.confusion_matrix(technique="tfidf")
 # src.confusion_matrix(technique="tfidf")
 # src.benchmark_change_data(train_or_test="test")
-# src.benchmark_change_data(train_or_test="train")
+src.benchmark_change_data(train_or_test="train")
 
 for k, v in benchmarks.items():
-    src.display_changing_dataset_benchmark(benchmark=k, test_or_train="test")
+    # src.display_changing_dataset_benchmark(benchmark=k, test_or_train="test")
     # src.display_changing_dataset_benchmark(benchmark=k, test_or_train="train")
     pass
