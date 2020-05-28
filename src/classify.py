@@ -12,23 +12,25 @@ sim_types = ['fasttext', 'word2vec', 'elmo', 'tfidf']
 __all__ = ["classify"]
 
 
-def classify(data=None, technique="tfidf", grid=False, C=None, max_iter=None, cv=None, min_wordcount=None, verbose=0, unique=False, write=True):
+def classify(data=None, technique="tfidf", train_data=None, test_data=None, grid=False, C=None, max_iter=None, cv=None, min_wordcount=None, verbose=0, unique=False, write=True):
     if technique not in sim_types:
         raise ValueError("Invalid classification type " + technique + ". Expected one of: %s" % sim_types)
     print("Classifying lines using " + technique)
-    if data is None:
-        if technique == "tfidf":
-            data = fm.get_df("0_parsed", unique=unique)
-        else:
-            data = fm.get_df("1_embedded_" + technique, unique=unique)
-            if data is None:
-                data = embed.embed_transcripts(type=technique)
+    if technique == "tfidf":
+        print("TF-IDF: data obtained from 0_parsed")
+        data = fm.get_df("0_parsed", unique=unique)
+    else:
+        print("fastText: data obtained from 1_embedded_fasttext")
+        data = fm.get_df("1_embedded_" + technique, unique=unique)
+        if data is None:
+            data = embed.embed_transcripts(type=technique)
 
-    if min_wordcount:
-        data = data[data["parsed"]["wordcount"] > min_wordcount]
-
-    train, non_train = train_test_split(data, random_state=1515, train_size=0.6)
-    test, validate = train_test_split(non_train, random_state=1515, train_size=0.5)
+    if train_data is not None and test_data is not None:
+        print("Test and train data provided, using those instead")
+        train = train_data
+        test = test_data
+    else:
+        train, test = train_test_split(data, random_state=1515, train_size=0.8)
 
     y_train = train["parsed"]["character"]
     y_test = test["parsed"]["character"]
@@ -43,7 +45,7 @@ def classify(data=None, technique="tfidf", grid=False, C=None, max_iter=None, cv
 
 
     if grid:
-        params = {"C": np.logspace(-10, 5, 16), 'max_iter': [500, 1000, 2000]}
+        params = {"C": np.logspace(-10, 5, 16), 'max_iter': [250,500,750]}
         if C:
             params["C"] = C if technique is list else [C]
         if max_iter:

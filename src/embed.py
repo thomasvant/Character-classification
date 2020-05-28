@@ -2,41 +2,25 @@ import pandas as pd
 import time
 import numpy as np
 import src.file_manager as fm
-
-techniques = ['fasttext', 'word2vec', 'elmo', 'tfidf']
+import sister
+from sister import word_embedders
 
 __all__ = ["embed"]
 
-
-def embed(technique="fasttext", unique=False):
-    if technique not in techniques:
-        raise ValueError("Invalid embedding type. Expected one of: %s" % technique)
-    print("Embedding transcripts using " + technique)
-    data = fm.get_df("0_parsed", unique=unique)
-
-    if technique == "fasttext" or technique == "word2vec":
-        embedded = sisters(data["parsed"]["line"], technique)
-    else:
-        embedded = elmo(data["parsed"]["line"])
-
-    d = {"embedded": pd.DataFrame.from_records(embedded)}
+def embed():
+    print("Embedding transcripts")
+    data = fm.get_df("0_parsed")
+    sentence_embedding = sister.MeanEmbedding(lang="en")
+    embedded = data["parsed"]["line"].apply(sentence_embedding)
+    d = {"embedded": pd.DataFrame.from_records(embedded, index=embedded.index)}
     embedded = data.join(pd.concat(d, axis=1))
 
-    fm.write_df(embedded, "1_embedded_" + technique)
+    fm.write_df(embedded, "1_embedded_fasttext")
     return embedded
 
-
 def sisters(data, technique="fasttext"):
-    import sister
-    from sister import word_embedders
-    if technique == "fasttext":
-        word_embedder = sister.word_embedders.FasttextEmbedding("en")
-    else:
-        word_embedder = sister.word_embedders.Word2VecEmbedding("en")
 
-    sentence_embedding = sister.MeanEmbedding(lang="en", word_embedder=word_embedder)
-
-    return data.apply(sentence_embedding)
+    return
 
 
 def elmo(data):

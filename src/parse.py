@@ -12,8 +12,7 @@ __all__ = ['parse']
 stop_words = set(stopwords.words('english'))
 ps = PorterStemmer()
 spell = Speller()
-cont = Contractions(api_key="glove-twitter-100")
-
+cont = Contractions(api_key="glove-twitter-25")
 
 def parse(correct_spelling=False, stemming=False, remove_stopwords=False, expand_contractions=True):
     print("Parsing episodes")
@@ -25,9 +24,12 @@ def parse(correct_spelling=False, stemming=False, remove_stopwords=False, expand
         lines.extend(parse_episode(episode, correct_spelling, stemming, remove_stopwords, expand_contractions))
 
     df = pd.DataFrame(lines, columns=["character", "line", "wordcount", "stopwordcount"])
-    df['is_unique'] = ~df['line'].duplicated(keep=False)
+    # Remove duplicate combinations of ["character] and ["line"] and leave only 1
+    # Remove duplicate ["line"] since this would mean multiple characters say the same sentence
+    df = df[~df.duplicated(subset=["character", "line"])]
+    df = df[~df.duplicated(subset=["line"], keep=False)]
     ml = {'parsed': df}
-    ml_df = pd.concat(ml, axis=1)
+    ml_df = pd.concat(ml, axis=1).reindex()
     fm.write_df(ml_df, "0_parsed")
     return ml_df
 
@@ -67,11 +69,14 @@ def replace_words(string):
         "t.g.i.friday's": "tgifridays",
         'dr.': 'doctor',
         'f.y.i.': 'fyi',
-        'p.m.': '',
-        'a.m.': '',
+        'p.m.': 'pm',
+        'a.m.': 'am',
         's.a.t.s.': 'sats',
         "’" : "'",
-        "c'mon": "come on"
+        "c'mon": "come on",
+        "o'clock": "o clock",
+        "y'know": "you know",
+        "‘em": "them"
     }
     for k, v in word_mappings.items():
         string = string.replace(k, v)
@@ -133,7 +138,7 @@ def split_and_process_lines(string, correct_spelling=False, stemming=False, remo
         if remove_stopwords:
             line_array = stopwords(line_array)
         if len(line_array) > 1:
-            lines.append(" ".join(line_array))
+            lines.append(" ".join(line_array).lower())
     return lines
 
 

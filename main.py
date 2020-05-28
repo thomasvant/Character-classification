@@ -24,12 +24,15 @@ benchmarks = {
     "predict_proba_predicted_character":{}
 }
 
-for k, v in features.items():
-    # src.classify(technique=k, unique=options.get("unique"))
-    src.confusion_matrix(technique=k)
+# src.parse()
+# src.embed()
+src.classify(technique="fasttext", grid=True, verbose=3)
+src.classify(technique="tfidf", grid=True, verbose=3)
+src.confusion_matrix(technique="fasttext")
+src.confusion_matrix(technique="tfidf")
+src.benchmark_change_data(train_or_test="test")
+# src.benchmark_change_data(train_or_test="train")
 
-# src.benchmark_per_wordcount()
-# src.benchmark_per_min_wordcount(grid=True)
-
-# for k, v in benchmarks.items():
-#     src.display_benchmark_per_wordcount(benchmark=k, min_wordcount=True)
+for k, v in benchmarks.items():
+    src.display_changing_dataset_benchmark(benchmark=k, test_or_train="test")
+    # src.display_changing_dataset_benchmark(benchmark=k, test_or_train="train")

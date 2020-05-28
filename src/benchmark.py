@@ -5,10 +5,11 @@ from sklearn import metrics
 import pandas as pd
 from sklearn.metrics import log_loss, accuracy_score
 from copy import deepcopy
+from sklearn.model_selection import train_test_split
 
 sim_types = ['fasttext', 'tfidf']
 
-__all__ = ["benchmark_per_wordcount", "benchmark_per_min_wordcount"]
+__all__ = ["benchmark_per_wordcount", "benchmark_per_min_wordcount", "benchmark_change_data"]
 
 
 def benchmark_per_wordcount(grid=False):
@@ -23,10 +24,10 @@ def benchmark_per_wordcount(grid=False):
     fasttext = deepcopy(dictionary)
     tfidf = deepcopy(dictionary)
 
-    tfidf_data, _ = src.classify(technique="tfidf", unique=True, grid=grid, \
+    tfidf_data, _ = src.classify(technique="tfidf", unique=False, grid=grid, \
                                     C=1.0, max_iter=500, \
                                     write=False)
-    fasttext_data, _ = src.classify(technique="fasttext", unique=True, grid=grid, \
+    fasttext_data, _ = src.classify(technique="fasttext", unique=False, grid=grid, \
                                  C=1.0, max_iter=500, \
                                  write=False)
 
@@ -65,16 +66,94 @@ def benchmark_per_wordcount(grid=False):
     return data
 
 
-def benchmark_per_min_wordcount(grid=False, min=2, max=30):
-    print("Benchmarking per min wordcount from " + str(min) + " to " + str(max) + " with grid set to " + str(grid))
+def benchmark_change_data(train_or_test="test", grid=True, min=2, max=30):
+    print("Benchmarking using new method from " + str(min) + " to " + str(max))
 
     dictionary = {
         "accuracy": [],
         "cross_entropy": [],
         "predict_proba_predicted_character": [],
-        "C": [],
-        "max_iter": []
     }
+    fasttext_dict = deepcopy(dictionary)
+    tfidf_dict = deepcopy(dictionary)
+
+    data = src.file_manager.get_df("1_embedded_fasttext")
+
+    train, test = train_test_split(data, random_state=1515, train_size=0.8)
+    # Train shrinks, data needs to be classified only once
+    if train_or_test == "test":
+        classified_data, params = src.classify(technique="fasttext", train_data=train, test_data=test, unique=False, grid=True, write=False)
+    for min_wordcount in range(min, max):
+        print(min_wordcount)
+        if train_or_test == "test":
+            classified_data = classified_data[classified_data["parsed"]["wordcount"] >= min_wordcount]
+        else:
+            train = train[train["parsed"]["wordcount"] >= min_wordcount]
+            classified_data, params = src.classify(technique="fasttext", train_data=train, test_data=test, unique=False,
+                                                   grid=True, write=False)
+        labels = classified_data["predict_proba_"].columns
+        fasttext_dict.get("accuracy").append(
+            accuracy_score(classified_data["parsed"]["character"], classified_data["classified"]["character"]))
+        fasttext_dict.get("cross_entropy").append(
+            log_loss(classified_data["parsed"]["character"], classified_data["predict_proba_"], labels=labels))
+        fasttext_dict.get("predict_proba_predicted_character").append(
+            classified_data["predict_proba_specific"]["predicted_character"].mean())
+        print(fasttext_dict)
+
+    data = src.file_manager.get_df("0_parsed")
+
+    train, test = train_test_split(data, random_state=1515, train_size=0.8)
+
+    wordcount_range = range(min, max)
+    if train_or_test == "test":
+        classified_data, params = src.classify(technique="tfidf", train_data=train, test_data=test, unique=False, grid=True, write=False)
+    for min_wordcount in wordcount_range:
+        print(min_wordcount)
+        if train_or_test == "test":
+            classified_data = classified_data[classified_data["parsed"]["wordcount"] >= min_wordcount]
+        else:
+            train = train[train["parsed"]["wordcount"] >= min_wordcount]
+            classified_data, params = src.classify(technique="tfidf", train_data=train, test_data=test, unique=False, grid=True, write=False)
+        labels = classified_data["predict_proba_"].columns
+        tfidf_dict.get("accuracy").append(
+            accuracy_score(classified_data["parsed"]["character"], classified_data["classified"]["character"]))
+        tfidf_dict.get("cross_entropy").append(
+            log_loss(classified_data["parsed"]["character"], classified_data["predict_proba_"], labels=labels))
+        tfidf_dict.get("predict_proba_predicted_character").append(
+            classified_data["predict_proba_specific"]["predicted_character"].mean())
+        print(tfidf_dict)
+
+    tfidf_df = pd.concat([pd.Series(v, index=wordcount_range) for k, v in tfidf_dict.items()],
+                         keys=[k for k, v in tfidf_dict.items()], axis=1)
+    fasttext_df = pd.concat([pd.Series(v, index=wordcount_range) for k, v in fasttext_dict.items()],
+                            keys=[k for k, v in fasttext_dict.items()], axis=1)
+    d = {
+        "tfidf": tfidf_df,
+        "fasttext": fasttext_df
+    }
+
+    df = pd.concat(d, axis=1)
+    fm.write_df(df, "4_benchmark_change_testing_data_" + train_or_test)
+    return df
+
+
+def benchmark_per_min_wordcount(min=2, max=30, grid=False):
+    print("Benchmarking per min wordcount from " + str(min) + " to " + str(max) + " with grid set to " + str(grid))
+
+    if grid:
+        dictionary = {
+            "accuracy": [],
+            "cross_entropy": [],
+            "predict_proba_predicted_character": [],
+            "C": [],
+            "max_iter": []
+        }
+    else:
+        dictionary = {
+            "accuracy": [],
+            "cross_entropy": [],
+            "predict_proba_predicted_character": [],
+        }
     fasttext = deepcopy(dictionary)
     tfidf = deepcopy(dictionary)
 
@@ -83,26 +162,38 @@ def benchmark_per_min_wordcount(grid=False, min=2, max=30):
     print(list(wordcount_range))
     for i in wordcount_range:
         print("Min wordcount: " + str(i))
-        tfidf_data, tfidf_params = src.classify(technique="tfidf", min_wordcount=i, unique=True, grid=grid,\
-                                     # C=1.0, max_iter=500, \
-                                     write=False)
+        if grid:
+            tfidf_data, tfidf_params = src.classify(technique="tfidf", min_wordcount=i, unique=False, grid=grid,\
+                                         # C=1.0, max_iter=500, \
+                                         write=False)
+        else:
+            tfidf_data, tfidf_params = src.classify(technique="tfidf", min_wordcount=i, unique=False, grid=grid, \
+                                                    C=1.0, max_iter=500, \
+                                                    write=False)
         tfidf_labels = tfidf_data["predict_proba_"].columns
         tfidf.get("accuracy").append(accuracy_score(tfidf_data["parsed"]["character"], tfidf_data["classified"]["character"]))
         tfidf.get("cross_entropy").append(log_loss(tfidf_data["parsed"]["character"], tfidf_data["predict_proba_"], labels=tfidf_labels))
         tfidf.get("predict_proba_predicted_character").append(tfidf_data["predict_proba_specific"]["predicted_character"].mean())
-        tfidf.get("C").append(tfidf_params.get("C"))
-        tfidf.get("max_iter").append(tfidf_params.get("max_iter"))
+        if grid:
+            tfidf.get("C").append(tfidf_params.get("C"))
+            tfidf.get("max_iter").append(tfidf_params.get("max_iter"))
         print(tfidf)
 
-        fasttext_data, fasttext_params = src.classify(technique="fasttext", min_wordcount=i, unique=True, grid=grid, \
-                                        # C=0.1, max_iter=500, \
-                                        write=False)
+        if grid:
+            fasttext_data, fasttext_params = src.classify(technique="fasttext", min_wordcount=i, unique=False, grid=grid, \
+                                            # C=0.1, max_iter=500, \
+                                            write=False)
+        else:
+            fasttext_data, fasttext_params = src.classify(technique="fasttext", min_wordcount=i, unique=False, grid=grid, \
+                                                          C=0.1, max_iter=500, \
+                                                          write=False)
         fasttext_labels = fasttext_data["predict_proba_"].columns
         fasttext.get("accuracy").append(accuracy_score(fasttext_data["parsed"]["character"], fasttext_data["classified"]["character"]))
         fasttext.get("cross_entropy").append(log_loss(fasttext_data["parsed"]["character"], fasttext_data["predict_proba_"], labels=fasttext_labels))
         fasttext.get("predict_proba_predicted_character").append(fasttext_data["predict_proba_specific"]["predicted_character"].mean())
-        fasttext.get("C").append(fasttext_params.get("C"))
-        fasttext.get("max_iter").append(fasttext_params.get("max_iter"))
+        if grid:
+            fasttext.get("C").append(fasttext_params.get("C"))
+            fasttext.get("max_iter").append(fasttext_params.get("max_iter"))
         print(fasttext)
 
     tfidf_df = pd.concat([pd.Series(v, index=wordcount_range) for k,v in tfidf.items()], keys=[k for k,v in tfidf.items()], axis=1)
@@ -113,5 +204,5 @@ def benchmark_per_min_wordcount(grid=False, min=2, max=30):
     }
 
     data = pd.concat(d, axis=1)
-    fm.write_df(data, "3_benchmark_per_min_wordcount")
+    fm.write_df(data, "3_benchmark_per_min_wordcount" + ("_grid" if grid else ""))
     return data
