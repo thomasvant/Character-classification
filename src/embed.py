@@ -2,12 +2,13 @@ import pandas as pd
 import time
 import numpy as np
 import src.file_manager as fm
-import sister
-from sister import word_embedders
+
 
 __all__ = ["embed"]
 
 def embed():
+    import sister
+    from sister import word_embedders
     print("Embedding transcripts")
     data = fm.get_df("0_parsed")
     sentence_embedding = sister.MeanEmbedding(lang="en")
