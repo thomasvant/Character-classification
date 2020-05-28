@@ -1,6 +1,8 @@
 import pathlib
 import pandas as pd
+import matplotlib
 import matplotlib.pylab as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import src.file_manager as fm
 from sklearn import metrics
@@ -8,11 +10,23 @@ import src.file_manager as fm
 import src
 import seaborn as sn
 
+plt.figure(dpi=200)
+
+# import pdflatex
+# import tikzplotlib
+# plt.style.use("ggplot")
+# matplotlib.use("pgf")
+# matplotlib.rcParams.update({
+#     "pgf.texsystem": "pdflatex",
+#     'font.family': 'serif',
+#     'text.usetex': True,
+#     'pgf.rcfonts': False,
+# })
 
 __all__ = ["confusion_matrix", "display_benchmark_per_wordcount", "display_changing_dataset_benchmark"]
 
 
-extraction_techniques = ["fasttext", "tfidf"]
+extraction_techniques = {"fasttext":"fastText", "tfidf":"TF-IDF"}
 benchmarks = {
     "accuracy": "Accuracy",
     "cross_entropy": "Cross entropy loss",
@@ -26,7 +40,7 @@ def display_benchmark_per_wordcount(min_wordcount=False, grid=False, benchmark="
     else:
         data = fm.get_df("3_benchmark_per_wordcount")
     x = data.index
-    for extraction in extraction_techniques:
+    for extraction in extraction_techniques.keys():
         y = data[extraction][benchmark]
         plt.scatter(x, y)
     if min_wordcount:
@@ -34,19 +48,22 @@ def display_benchmark_per_wordcount(min_wordcount=False, grid=False, benchmark="
     else:
         plt.xlabel("Wordcount")
     plt.ylabel(benchmark)
-    plt.legend(extraction_techniques)
+    plt.figure(dpi=200)
+
+    plt.legend(extraction_techniques.values())
     plt.show()
 
 
 def display_changing_dataset_benchmark(benchmark="accuracy", test_or_train="test"):
     data = src.file_manager.get_df("4_benchmark_change_testing_data_" + test_or_train)
     x = data.index
-    for extraction in extraction_techniques:
+    for extraction in extraction_techniques.keys():
         y = data[extraction][benchmark]
         plt.scatter(x, y)
     plt.ylabel(benchmarks.get(benchmark))
     plt.xlabel("Minimum wordcount set on " + test_or_train + " data")
-    plt.legend(extraction_techniques)
+    plt.legend(extraction_techniques.values())
+    plt.savefig('temp.png', dpi=200)
     plt.show()
 
 
@@ -60,5 +77,10 @@ def confusion_matrix(technique="tfidf"):
     cm = metrics.confusion_matrix(parsed_character, classified_character, labels=labels)
     print(cm)
     # print(np.round(cm / cm.astype(np.float).sum(axis=1),2))
-    sn.heatmap(cm, annot=True,cmap='Greens', fmt='g', xticklabels=labels, yticklabels=labels)
+    labels = data["predict_proba_"].columns.str.capitalize()
+    sn.heatmap(cm, annot=True,cmap='Greens', fmt='g', xticklabels=labels, yticklabels=labels, vmin=100, vmax=700)
+    plt.xlabel("Actual character")
+    plt.ylabel("Predicted character")
+    # tikzplotlib.save("confusion_matrix_fasttext.pgf")
+    plt.savefig('temp.png')
     plt.show()

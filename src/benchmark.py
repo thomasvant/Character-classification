@@ -82,7 +82,7 @@ def benchmark_change_data(train_or_test="test", grid=True, min=2, max=30):
     train, test = train_test_split(data, random_state=1515, train_size=0.8)
     # Train shrinks, data needs to be classified only once
     if train_or_test == "test":
-        classified_data, params = src.classify(technique="fasttext", train_data=train, test_data=test, unique=False, grid=True, write=False)
+        classified_data, params = src.classify(technique="fasttext", train_data=train, test_data=test, unique=False, C=10.0, max_iter=200, write=False)
     for min_wordcount in range(min, max):
         print(min_wordcount)
         if train_or_test == "test":
@@ -106,7 +106,7 @@ def benchmark_change_data(train_or_test="test", grid=True, min=2, max=30):
 
     wordcount_range = range(min, max)
     if train_or_test == "test":
-        classified_data, params = src.classify(technique="tfidf", train_data=train, test_data=test, unique=False, grid=True, write=False)
+        classified_data, params = src.classify(technique="tfidf", train_data=train, test_data=test, unique=False, C=1.0, max_iter=500, write=False)
     for min_wordcount in wordcount_range:
         print(min_wordcount)
         if train_or_test == "test":
