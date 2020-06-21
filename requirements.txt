@@ -1,0 +1,17 @@
+tensorflow==2.1.0
+tensorflow_hub
+scikit-learn
+pathlib
+requests
+numpy
+pandas
+sklearn
+beautifulsoup4
+matplotlib
+autocorrect
+nltk
+pycontractions
+nltk
+autocorrect
+pycontractions
+seaborn
