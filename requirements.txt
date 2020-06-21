@@ -11,3 +11,7 @@ matplotlib
 autocorrect
 nltk
 pycontractions
+nltk
+autocorrect
+pycontractions
+seaborn

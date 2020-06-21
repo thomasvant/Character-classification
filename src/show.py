@@ -54,14 +54,17 @@ def display_benchmark_per_wordcount(min_wordcount=False, grid=False, benchmark="
     plt.show()
 
 
-def display_changing_dataset_benchmark(benchmark="accuracy", test_or_train="test"):
-    data = src.file_manager.get_df("4_benchmark_change_testing_data_" + test_or_train)
+def display_changing_dataset_benchmark(benchmark="accuracy", random=False, test_or_train="test"):
+    data = src.file_manager.get_df("4_benchmark_change_testing_data_" + test_or_train + ("_random" if random else ""))
     x = data.index
     for extraction in extraction_techniques.keys():
         y = data[extraction][benchmark]
         plt.scatter(x, y)
     plt.ylabel(benchmarks.get(benchmark))
-    plt.xlabel("Minimum wordcount set on " + test_or_train + " data")
+    if random:
+        plt.xlabel("Randomly selected " + test_or_train + " data of equal size to setting a minimum wordcount")
+    else:
+        plt.xlabel("Minimum wordcount set on " + test_or_train + " data")
     plt.legend(extraction_techniques.values())
     plt.savefig('temp.png', dpi=200)
     plt.show()

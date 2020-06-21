@@ -14,6 +14,7 @@ ps = PorterStemmer()
 spell = Speller()
 cont = Contractions(api_key="glove-twitter-25")
 
+# General method to be called
 def parse(correct_spelling=False, stemming=False, remove_stopwords=False, expand_contractions=True):
     print("Parsing episodes")
 
@@ -33,7 +34,7 @@ def parse(correct_spelling=False, stemming=False, remove_stopwords=False, expand
     fm.write_df(ml_df, "0_parsed")
     return ml_df
 
-
+# Parse single episode
 def parse_episode(file, correct_spelling=False, stemming=False, remove_stopwords=False, expand_contractions=True):
     episode_soup = bs(file, 'html.parser')
     string_array = []

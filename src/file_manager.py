@@ -24,9 +24,9 @@ def get_transcripts():
     return [open(path, encoding="utf8") for path in transcripts_dir.iterdir()]
 
 
-def write_df(df: pd.DataFrame, filename: str):
+def write_df(df: pd.DataFrame, filename: str, float_format=None):
     created_files_dir.mkdir(parents=True, exist_ok=True)
-    df.to_csv(created_files_dir.joinpath(filename + ".csv"), sep='|')
+    df.to_csv(created_files_dir.joinpath(filename + ".csv"), sep='|', float_format=float_format)
 
 
 def get_df(filename, unique=False):

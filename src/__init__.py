@@ -5,3 +5,5 @@ from .classify import *
 from .benchmark import *
 from .show import *
 from .download import *
+from .classify_std import *
+from .benchmark_std import *
