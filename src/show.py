@@ -2,7 +2,6 @@ import pathlib
 import pandas as pd
 import matplotlib
 import matplotlib.pylab as plt
-# import matplotlib.pyplot as plt
 import numpy as np
 import src.file_manager as fm
 from sklearn import metrics
@@ -11,17 +10,6 @@ import src
 import seaborn as sn
 
 plt.figure(dpi=200)
-
-# import pdflatex
-# import tikzplotlib
-# plt.style.use("ggplot")
-# matplotlib.use("pgf")
-# matplotlib.rcParams.update({
-#     "pgf.texsystem": "pdflatex",
-#     'font.family': 'serif',
-#     'text.usetex': True,
-#     'pgf.rcfonts': False,
-# })
 
 __all__ = ["confusion_matrix", "display_benchmark_per_wordcount", "display_changing_dataset_benchmark"]
 
