@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 
 sim_types = ['fasttext', 'tfidf']
 
-__all__ = ["benchmark_per_min_wordcount", "benchmark_change_data"]
+__all__ = ["benchmark_change_data"]
 
 
 def benchmark_change_data(train_or_test="test", random=False, grid=False, min=2, max=30):
